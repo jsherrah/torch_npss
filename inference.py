@@ -104,6 +104,8 @@ def get_condition(filename):
 
     c_path = 'data/timbre_model/test/condition/'+filename+'_condi.npy'
     conditon = np.load(c_path).astype(np.float)
+    print('condition = {}'.format(conditon.shape))
+    # JRS time series with 361 values it looks like it could be the phonemes
     return torch.Tensor(conditon).transpose(0, 1)
 
 
@@ -111,28 +113,43 @@ def generate_test(filename):
 
     [sp_min, sp_max, ap_min, ap_max] = np.load('data/timbre_model/min_max_record.npy')
     condi = get_condition(filename)
+
+    if 1:
+        # Hack them phonemes!
+        nbPh = 35
+        print('condi shape = {}'.format(condi.shape))
+        condi[:3*nbPh, :] = 0
+        condi[4,:] = 1
+        condi[4+nbPh,:] = 1
+        condi[4+2*nbPh,:] = 1
+
     # cat_input = get_ap_cat()
     # fist_input = get_first_input()
 
+    # JRS This is the key function, but where is it getting the phonemes from? condi
     sp, raw_sp = generate_timbre(0, sp_max, sp_min, condi, None)
 
+    plt.figure()
     plt.imshow(np.log(np.transpose(sp)), aspect='auto', origin='bottom', interpolation='none')
-    plt.show()
+    plt.waitforbuttonpress(0.1)
 
     sp1 = load_timbre('data/timbre_model/test/sp/'+filename+'_sp.npy', 0, sp_max, sp_min)
 
+    plt.figure()
     plt.imshow(np.log(np.transpose(sp1)), aspect='auto', origin='bottom', interpolation='none')
-    plt.show()
+    plt.waitforbuttonpress(0.1)
     ####################################################################################################
     ap, raw_ap = generate_timbre(1, ap_max, ap_min, condi, raw_sp)
 
+    plt.figure()
     plt.imshow(np.log(np.transpose(ap)), aspect='auto', origin='bottom', interpolation='none')
-    plt.show()
+    plt.waitforbuttonpress(0.1)
 
     ap1 = load_timbre('data/timbre_model/test/ap/'+filename+'_ap.npy', 1, ap_max, ap_min)
 
+    plt.figure()
     plt.imshow(np.log(np.transpose(ap1)), aspect='auto', origin='bottom', interpolation='none')
-    plt.show()
+    plt.waitforbuttonpress(0.1)
 
     #########################################################################################################
     # vuv_cat = get_vuv_cat()
@@ -149,6 +166,11 @@ def generate_test(filename):
     path = 'data/raw/'+filename+'.raw'
     _f0, _sp, code_sp, _ap, code_ap = process_wav(path)
     # 合成原始语音
+    plt.ion()
+    print('f0 shape = {}, sp shape = {}, ap shape = {}'.format(_f0.shape, sp.shape, ap.shape))
+
+    # JRS: this is using _f0 from 'path', but sp and ap from above which seems to be generated
+    # So we need to work out how to synthesise sp and ap from text.
     synthesized = pw.synthesize(_f0, sp, ap, 32000, pw.default_frame_period)
     # 1.输出原始语音
     sf.write('./data/gen_wav/'+filename+''
@@ -157,5 +179,5 @@ def generate_test(filename):
 
 
 if __name__ == '__main__':
+    plt.ion()
     generate_test('nitech_jp_song070_f001_029')
-
